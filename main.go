@@ -30,6 +30,7 @@ func serveHTTP(logger *util.LoggerService) {
 	http.HandleFunc(routes.REGISTER, controller.Register)
 	http.HandleFunc(routes.VERIFY, controller.Verify)
 	http.HandleFunc(routes.LOGIN, controller.Login)
+	http.HandleFunc(routes.CREATETEAM, controller.CreateTeam)
 
 	
 	logger.Info(fmt.Sprintf("Test http server on http://localhost%v/api/test", HTTP_PORT))

@@ -46,11 +46,13 @@ CREATE TABLE IF NOT EXISTS access (
     updatedAt TIMESTAMP WITH TIME ZONE DEFAULT now() NOT NULL
 );
 
+
 --table to maintain team metadata
 CREATE TABLE IF NOT EXISTS team (
-    teamID UUID PRIMARY KEY,
-    createdBy STRING NOT NULL,
-    role STRING,
+    teamID UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    teamName STRING NOT NULL,
+    teamDesc STRING,
+    createdBy UUID REFERENCES users(id),
     createdAt TIMESTAMP WITH TIME ZONE DEFAULT now() NOT NULL,
     updatedAt TIMESTAMP WITH TIME ZONE DEFAULT now() NOT NULL
 );
@@ -59,7 +61,22 @@ CREATE TABLE IF NOT EXISTS team (
 CREATE TABLE IF NOT EXISTS teamMembers (
     memberId UUID REFERENCES users(id),
     teamID UUID REFERENCES team(teamID),
+    role STRING NOT NULL CHECK (role IN ('Admin', 'Member')),
     PRIMARY KEY (memberId, teamID),
     createdAt TIMESTAMP WITH TIME ZONE DEFAULT now() NOT NULL,
     updatedAt TIMESTAMP WITH TIME ZONE DEFAULT now() NOT NULL
+);
+
+INSERT INTO USERS 
+(
+    USERNAME,
+    FULLNAME,
+    EMAIL,
+    PASSWORD
+)
+VALUES (
+    'sharath',
+    'sharath',
+    'abc@gmail.com',
+    'password123'
 );
