@@ -6,11 +6,17 @@ import (
 	"fmt"
 	"evolve/db/connection"
 	"evolve/util"
-	
 )
+
 type CreateTeamReq struct {
 	TeamName string `json:"teamName"`
 	TeamDesc    string `json:"teamDesc"`
+}
+
+type TeamInfo struct {
+    TeamID      string `json:"teamId"`
+    TeamDesc    string `json:"teamDesc"`
+    MemberCount int    `json:"memberCount"`
 }
 
 func CreateTeamReqFromJson(data map[string]any) (*CreateTeamReq, error) {
@@ -38,12 +44,7 @@ func (c *CreateTeamReq) CreateTeam(ctx context.Context, user map[string]string) 
 		return fmt.Errorf("something went wrong")
 	}
 
-	// userInfo, err := dbutil.UserById(ctx, user["id"], db)
-
-	if err != nil {
-		logger.Error(fmt.Sprintf("CreateTeam: Invalid UserID: %v", err), err)
-		return fmt.Errorf("Invalid User")
-	}	
+	
 
 	//inserting team info in team table
 	var teamID string
@@ -63,4 +64,46 @@ func (c *CreateTeamReq) CreateTeam(ctx context.Context, user map[string]string) 
 	}
 	return nil
 
+}
+
+func GetTeams(ctx context.Context, user map[string]string) ([]map[string]any, error) {
+	logger := util.SharedLogger
+
+	db, err := connection.PoolConn(ctx)
+	if err != nil {
+		logger.Error(fmt.Sprintf("GetTeams: failed to get pool connection: %v", err), err)
+		return nil,fmt.Errorf("something went wrong")
+	}
+
+	rows, err := db.Query(ctx, "SELECT T.TEAMID, T.TEAMDESC, COUNT(*) OVER (PARTITION BY M.TEAMID) FROM TEAM T JOIN TEAMMEMBERS M ON T.TEAMID = M.TEAMID AND T.CREATEDBY = $1", user["id"])
+
+	if err != nil {
+		logger.Error(fmt.Sprintf("GetTeams: failed to get teams: %v", err), err)
+		return nil, fmt.Errorf("something went wrong")
+	}
+
+	var teams []TeamInfo
+
+	for rows.Next() {
+		var team TeamInfo
+        err := rows.Scan(&team.TeamID, &team.TeamDesc, &team.MemberCount)
+		if err != nil {
+            logger.Error(fmt.Sprintf("GetTeams: failed to get teams: %v", err), err)
+            return nil, fmt.Errorf("something went wrong")
+        }
+
+		teams = append(teams, team)
+	}
+	
+	result, err := json.Marshal(teams)
+	if err != nil {
+		logger.Error(fmt.Sprintf("GetTeams: failed to convert TeamInfo to json: %v", err), err)
+		return nil, fmt.Errorf("something went wrong")
+	}
+
+	var teamMap []map[string]any
+
+	err = json.Unmarshal(result, &teamMap)
+	
+	return teamMap, nil
 }

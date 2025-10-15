@@ -4,10 +4,10 @@ import (
 	"evolve/util"
 	"evolve/util/auth"
 	"net/http" 
-	"fmt"
 	"evolve/modules/team"
 )
 
+//to create a new team
 func CreateTeam(res http.ResponseWriter, req *http.Request) {
 
 	logger := util.SharedLogger
@@ -26,7 +26,7 @@ func CreateTeam(res http.ResponseWriter, req *http.Request) {
 		util.JSONResponse(res, http.StatusUnauthorized, "Session Expired.", nil)
 		return
 	}
-	fmt.Println(payLoad)
+	
 	if payLoad["purpose"] != "login" {
 		util.JSONResponse(res, http.StatusUnauthorized, "Good try.", nil)
 		return
@@ -54,5 +54,40 @@ func CreateTeam(res http.ResponseWriter, req *http.Request) {
 
 	util.JSONResponse(res, http.StatusOK, "Team Creation Successful.", nil)
 
+
+}
+
+//to get the list of teams created by a user
+func GetTeams(res http.ResponseWriter, req *http.Request) {
+	logger := util.SharedLogger
+	logger.InfoCtx(req, "GetTeams API called.")
+
+	token, err := req.Cookie("t")
+
+	if err != nil {
+		util.JSONResponse(res, http.StatusUnauthorized, "You got to try way better than that.", nil)
+		return
+	}
+
+	payLoad, err := auth.ValidateToken(token.Value)
+
+	if err != nil {
+		util.JSONResponse(res, http.StatusUnauthorized, "Session Expired.", nil)
+		return
+	}
+
+	if payLoad["purpose"] != "login" {
+		util.JSONResponse(res, http.StatusUnauthorized, "Good try.", nil)
+		return
+	}
+
+	teamsInfo,err := team.GetTeams(req.Context(), payLoad)
+
+	if err != nil {
+		util.JSONResponse(res, http.StatusBadRequest, err.Error(), nil)
+		return
+	}
+	
+	util.JSONResponse(res, http.StatusOK, "Success", teamsInfo)
 
 }
