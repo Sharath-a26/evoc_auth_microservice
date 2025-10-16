@@ -19,6 +19,10 @@ type TeamInfo struct {
     MemberCount int    `json:"memberCount"`
 }
 
+type GetTeamMembersReq struct {
+	TeamName string `json:"teamName"`
+}
+
 func CreateTeamReqFromJson(data map[string]any) (*CreateTeamReq, error) {
 	jsonData, err := json.Marshal(data)
 	if err != nil {
@@ -106,4 +110,33 @@ func GetTeams(ctx context.Context, user map[string]string) ([]map[string]any, er
 	err = json.Unmarshal(result, &teamMap)
 	
 	return teamMap, nil
+}
+
+
+func (g *GetTeamMembersReq) GetTeamMembers(ctx context.Context, payLoad map[string]string) ([]map[string]any, error) {
+	
+	logger := util.SharedLogger
+
+	db, err := connection.PoolConn(ctx)
+	if err != nil {
+		logger.Error(fmt.Sprintf("GetTeamMembers: failed to get pool connection: %v", err), err)
+		return nil,fmt.Errorf("something went wrong")
+	}
+
+	rows, err := db.Query("SELECT T.TEAMID, T.TEAMNAME, T.TEAMDESC,
+                             M.MEMBERID, U.USERNAME,U.EMAIL, M.ROLE FROM
+                             TEAM T JOIN TEAMMEMBERS M ON T.TEAMID =
+                             M.TEAMID JOIN USERS U ON M.MEMBERID = U.ID
+                              WHERE T.CREATEDBY =
+                             $1 AND
+                            T.TEAMNAME = $2", payLoad["id"], g.TeamName)
+
+	if err != nil {
+		logger.Error(fmt.Sprintf("GetTeamMembers: failed to get teams: %v", err), err)
+		return nil, fmt.Errorf("something went wrong")
+		}
+	
+	var result map[string]any
+
+	
 }
