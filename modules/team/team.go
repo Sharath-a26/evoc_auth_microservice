@@ -23,6 +23,20 @@ type GetTeamMembersReq struct {
 	TeamName string `json:"teamName"`
 }
 
+type TeamMembers struct {
+	
+
+	UserName string `json:"userName"`
+	Email string 	`json:"email"`
+}
+
+type TeamData struct {
+	TeamId string `json:"teamId"`
+	TeamName string `json:"teamName"`
+	TeamDesc string `json:"teamDesc"`
+}
+
+
 func CreateTeamReqFromJson(data map[string]any) (*CreateTeamReq, error) {
 	jsonData, err := json.Marshal(data)
 	if err != nil {
@@ -113,7 +127,7 @@ func GetTeams(ctx context.Context, user map[string]string) ([]map[string]any, er
 }
 
 
-func (g *GetTeamMembersReq) GetTeamMembers(ctx context.Context, payLoad map[string]string) ([]map[string]any, error) {
+func (g *GetTeamMembersReq) GetTeamMembers(ctx context.Context, payLoad map[string]string) (map[string]any, error) {
 	
 	logger := util.SharedLogger
 
@@ -123,13 +137,7 @@ func (g *GetTeamMembersReq) GetTeamMembers(ctx context.Context, payLoad map[stri
 		return nil,fmt.Errorf("something went wrong")
 	}
 
-	rows, err := db.Query("SELECT T.TEAMID, T.TEAMNAME, T.TEAMDESC,
-                             M.MEMBERID, U.USERNAME,U.EMAIL, M.ROLE FROM
-                             TEAM T JOIN TEAMMEMBERS M ON T.TEAMID =
-                             M.TEAMID JOIN USERS U ON M.MEMBERID = U.ID
-                              WHERE T.CREATEDBY =
-                             $1 AND
-                            T.TEAMNAME = $2", payLoad["id"], g.TeamName)
+	rows, err := db.Query(ctx, "SELECT T.TEAMID, T.TEAMNAME, T.TEAMDESC, M.MEMBERID, U.USERNAME,U.EMAIL, M.ROLE FROM TEAM T JOIN TEAMMEMBERS M ON T.TEAMID = M.TEAMID JOIN USERS U ON M.MEMBERID = U.ID WHERE T.CREATEDBY = $1 AND T.TEAMNAME = $2", payLoad["id"], g.TeamName)
 
 	if err != nil {
 		logger.Error(fmt.Sprintf("GetTeamMembers: failed to get teams: %v", err), err)
@@ -138,5 +146,40 @@ func (g *GetTeamMembersReq) GetTeamMembers(ctx context.Context, payLoad map[stri
 	
 	var result map[string]any
 
+	var membersInfo []TeamMembers
+	var teamMetadata TeamData
+
+	fmt.Println(rows)
+	for rows.Next() {
+		var teamData TeamMembers
+		
+		//getting team members list
+		err := rows.Scan(&teamMetadata.TeamId, &teamMetadata.TeamName, &teamMetadata.TeamDesc ,&teamData.UserName, &teamData.Email)
+		if err != nil {
+            logger.Error(fmt.Sprintf("GetTeamMembersReq: failed to get team data: %v", err), err)
+            return nil, fmt.Errorf("something went wrong")
+        }
+
+		membersInfo = append(membersInfo, teamData)
+	}
+
+	// result1, err := json.Marshal(membersInfo)
+	// if err != nil {
+	// 	logger.Error(fmt.Sprintf("GetTeamMembers: failed to convert MembersInfo to json: %v", err), err)
+	// 	return nil, fmt.Errorf("something went wrong")
+	// }
+
+	// result2, errr := json.Marshal(teamMetadata)
+
 	
+	result["members"] = membersInfo
+	result["teamData"] = teamMetadata
+
+	return result, nil
+	
+
+
+
+
+
 }

@@ -32,7 +32,8 @@ func serveHTTP(logger *util.LoggerService) {
 	http.HandleFunc(routes.LOGIN, controller.Login)
 	http.HandleFunc(routes.CREATETEAM, controller.CreateTeam)
 	http.HandleFunc(routes.GETTEAMS, controller.GetTeams)
-	
+	http.HandleFunc(routes.GETMEMBERS, controller.GetTeamMembers)
+
 	logger.Info(fmt.Sprintf("Test http server on http://localhost%v/api/test", HTTP_PORT))
 	corsHandler := cors.New(cors.Options{
 		AllowedOrigins:   []string{os.Getenv("FRONTEND_URL")}, // Allowing frontend to access the server.

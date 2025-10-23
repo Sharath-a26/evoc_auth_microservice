@@ -95,35 +95,36 @@ func GetTeams(res http.ResponseWriter, req *http.Request) {
 //to get the members and team metadata
 
 func GetTeamMembers(res http.ResponseWriter, req *http.Request) {
+
+	logger := util.SharedLogger
+	logger.InfoCtx(req, "GetTeamMembers API called.")
+
+	token, err := req.Cookie("t")
+
+	if err != nil {
+		util.JSONResponse(res, http.StatusUnauthorized, "You got to try way better than that.", nil)
+		return
+	}
+
+	payLoad, err := auth.ValidateToken(token.Value)
+
+	if err != nil {
+		util.JSONResponse(res, http.StatusUnauthorized, "Session Expired.", nil)
+		return
+	}
+
+	if payLoad["purpose"] != "login" {
+		util.JSONResponse(res, http.StatusUnauthorized, "Good try.", nil)
+		return
+	}
+
+	var getTeamMembersObj team.GetTeamMembersReq
+	teamMetadata,err := getTeamMembersObj.GetTeamMembers(req.Context(), payLoad)
+
+	if err != nil {
+		util.JSONResponse(res, http.StatusBadRequest, err.Error(), nil)
+		return
+	}
 	
-	// logger := util.SharedLogger
-	// logger.InfoCtx(req, "GetTeamMembers API called.")
-
-	// token, err := req.Cookie("t")
-
-	// if err != nil {
-	// 	util.JSONResponse(res, http.StatusUnauthorized, "You got to try way better than that.", nil)
-	// 	return
-	// }
-
-	// payLoad, err := auth.ValidateToken(token.Value)
-
-	// if err != nil {
-	// 	util.JSONResponse(res, http.StatusUnauthorized, "Session Expired.", nil)
-	// 	return
-	// }
-
-	// if payLoad["purpose"] != "login" {
-	// 	util.JSONResponse(res, http.StatusUnauthorized, "Good try.", nil)
-	// 	return
-	// }
-
-	// teamMetadata,err := team.GetTeamMembers(req.Context(), payLoad)
-
-	// if err != nil {
-	// 	util.JSONResponse(res, http.StatusBadRequest, err.Error(), nil)
-	// 	return
-	// }
-	
-	// util.JSONResponse(res, http.StatusOK, "Success", teamMetadata)
+	util.JSONResponse(res, http.StatusOK, "Success", teamMetadata)
 }
